@@ -18,6 +18,7 @@ from dbt_common.clients.system import load_file_contents
 from dbt_common.dataclass_schema import ValidationError
 from dbt_common.events.functions import fire_event
 from dbt_common.exceptions import DbtValidationError
+from dbt_rust_ext import get_profiles_path
 
 from .renderer import ProfileRenderer
 
@@ -29,9 +30,8 @@ dbt encountered an error while trying to read your profiles.yml file.
 {error_string}
 """
 
-
 def read_profile(profiles_dir: str) -> Dict[str, Any]:
-    path = os.path.join(profiles_dir, "profiles.yml")
+    path = get_profiles_path(profiles_dir)
 
     contents = None
     if os.path.isfile(path):

@@ -27,8 +27,14 @@ CI_FLAGS =\
 	DBT_LOG_FORMAT=$(if $(DBT_LOG_FORMAT),$(DBT_LOG_FORMAT),json)
 
 
+.PHONY: build-rust
+build-rust: ## Build the Rust extension using maturin
+	@echo 'Building Rust extension...'
+	@cd rust_extensions/dbt_rust_ext && maturin develop --release
+	@echo 'Rust extension built successfully.'
+
 .PHONY: dev_req
-dev_req: ## Installs dbt-* packages in develop mode along with only development dependencies.
+dev_req: build-rust ## Installs dbt-* packages in develop mode along with only development dependencies.
 	@\
 	pip install -r dev-requirements.txt -r editable-requirements.txt
 
