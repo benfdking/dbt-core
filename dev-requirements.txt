@@ -1,7 +1,7 @@
-git+https://github.com/dbt-labs/dbt-adapters.git@main#subdirectory=dbt-adapters
-git+https://github.com/dbt-labs/dbt-adapters.git@main#subdirectory=dbt-tests-adapter
-git+https://github.com/dbt-labs/dbt-common.git@main
-git+https://github.com/dbt-labs/dbt-adapters.git@main#subdirectory=dbt-postgres
+git+https://github.com/dbt-labs/dbt-adapters.git@6dc698497b4123813210f332b09f04960b0a04f7#subdirectory=dbt-adapters
+git+https://github.com/dbt-labs/dbt-adapters.git@6dc698497b4123813210f332b09f04960b0a04f7#subdirectory=dbt-tests-adapter
+git+https://github.com/dbt-labs/dbt-common.git@c70329da9c285135c9b45159e7c8dba60577a555
+git+https://github.com/dbt-labs/dbt-adapters.git@6dc698497b4123813210f332b09f04960b0a04f7#subdirectory=dbt-postgres
 # black must match what's in .pre-commit-config.yaml to be sure local env matches CI
 black==24.3.0
 bumpversion
