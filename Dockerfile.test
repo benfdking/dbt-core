@@ -52,6 +52,17 @@ RUN curl -LO https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_V
 
 RUN pip3 install -U tox wheel six setuptools pre-commit
 
+# Install Rust for building the dbt_rust_ext module
+# Install to /usr/local so it's accessible to all users
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV CARGO_HOME=/usr/local/cargo
+ENV PATH=/usr/local/cargo/bin:$PATH
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --default-toolchain stable \
+    && chmod -R a+rx /usr/local/rustup /usr/local/cargo
+
+# Install maturin for building Python extensions
+RUN pip3 install -U maturin
+
 # These args are passed in via docker-compose, which reads then from the .env file.
 # On Linux, run `make .env` to create the .env file for the current user.
 # On MacOS and Windows, these can stay unset.
@@ -66,6 +77,9 @@ RUN if [ ${USER_ID:-0} -ne 0 ] && [ ${GROUP_ID:-0} -ne 0 ]; then \
     fi
 RUN mkdir /usr/app && chown dbt_test_user /usr/app
 RUN mkdir /home/tox && chown dbt_test_user /home/tox
+
+# Ensure rustup is configured properly for the dbt_test_user
+RUN su - dbt_test_user -c "/usr/local/cargo/bin/rustup default stable"
 
 WORKDIR /usr/app
 VOLUME /usr/app

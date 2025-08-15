@@ -3,7 +3,7 @@
 # Optional flag to run target in a docker container.
 # (example `make test USE_DOCKER=true`)
 ifeq ($(USE_DOCKER),true)
-	DOCKER_CMD := docker-compose run --rm test
+	DOCKER_CMD := docker-compose run --build --rm test
 endif
 
 #

@@ -31,7 +31,7 @@ dbt encountered an error while trying to read your profiles.yml file.
 """
 
 def read_profile(profiles_dir: str) -> Dict[str, Any]:
-    path = get_profiles_path(profiles_dir)
+    path = get_profiles_path(str(profiles_dir))
 
     contents = None
     if os.path.isfile(path):
