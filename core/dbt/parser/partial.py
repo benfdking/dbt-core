@@ -17,6 +17,7 @@ from dbt.node_types import NodeType
 from dbt_common.context import get_invocation_context
 from dbt_common.events.base_types import EventLevel
 from dbt_common.events.functions import fire_event
+import dbt_rust_ext
 
 mssat_files = (
     ParseFileType.Model,
@@ -32,12 +33,7 @@ mg_files = (
 )
 
 
-key_to_prefix = {
-    "models": "model",
-    "seeds": "seed",
-    "snapshots": "snapshot",
-    "analyses": "analysis",
-}
+key_to_prefix = dbt_rust_ext.key_to_prefix()
 
 
 parse_file_type_to_key = {
@@ -310,7 +306,6 @@ class PartialParsing:
     # tests: not touched by schema files (no patches, no tests)
     # Updated schema files should have been processed already.
     def update_mssat_in_saved(self, new_source_file, old_source_file):
-
         if self.already_scheduled_for_parsing(old_source_file):
             return
 

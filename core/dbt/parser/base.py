@@ -62,7 +62,7 @@ class BaseParser(Generic[FinalValue]):
         An optional hash may be passed in to ensure uniqueness for edge cases"""
 
         return ".".join(
-            filter(None, [self.resource_type, self.project.project_name, resource_name, hash])
+            filter(None, [str(self.resource_type), self.project.project_name, resource_name, hash])
         )
 
     def _handle_extract_warning(self, warning: ExtractWarning, file: str) -> None:
