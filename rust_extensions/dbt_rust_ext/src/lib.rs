@@ -1,12 +1,15 @@
-pub mod resources;
-pub mod parser;
+pub mod artifacts;
+pub mod config;
 pub mod contracts;
+pub mod parser;
+pub mod clients;
 
+use contracts::files::{parse_file_type_to_parser, ParseFileType};
+use parser::partial::key_to_prefix;
 use pyo3::prelude::*;
 use std::path::PathBuf;
-use parser::partial::key_to_prefix;
-use resources::types::{AccessType, NodeType};
-use contracts::files::{ParseFileType, parse_file_type_to_parser};
+
+use crate::{artifacts::resources::types::{AccessType, NodeType}, parser::docs::DocumentationParser};
 
 /// Get the path to the profiles.yml file
 /// This is a Rust implementation of the Python get_profiles_path function
@@ -14,7 +17,7 @@ use contracts::files::{ParseFileType, parse_file_type_to_parser};
 fn get_profiles_path(profiles_dir: &str) -> PyResult<String> {
     let mut path = PathBuf::from(profiles_dir);
     path.push("profiles.yml");
-    
+
     Ok(path.to_string_lossy().into_owned())
 }
 
@@ -27,6 +30,7 @@ fn dbt_rust_ext(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<AccessType>()?;
     m.add_class::<NodeType>()?;
     m.add_class::<ParseFileType>()?;
+    m.add_class::<DocumentationParser>()?;
     Ok(())
 }
 

@@ -10,7 +10,6 @@ from dbt.parser.search import BlockContents, BlockSearcher, FileBlock
 
 SHOULD_PARSE_RE = re.compile(r"{[{%]")
 
-
 class DocumentationParser(Parser[Documentation]):
     @property
     def resource_type(self) -> NodeType:
@@ -50,3 +49,8 @@ class DocumentationParser(Parser[Documentation]):
         for block in searcher:
             for parsed in self.parse_block(block):
                 self.manifest.add_doc(file_block.file, parsed)
+
+
+# from dbt_rust_ext import DocumentationParser
+
+# __all__ = ["DocumentationParser"]

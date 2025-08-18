@@ -1,4 +1,3 @@
-
 use pyo3::prelude::*;
 use pyo3::pyclass;
 
@@ -34,11 +33,14 @@ impl AccessType {
     }
 
     pub fn __repr__(&self) -> String {
-        format!("AccessType.{}", match self {
-            AccessType::Private => "Private",
-            AccessType::Protected => "Protected",
-            AccessType::Public => "Public",
-        })
+        format!(
+            "AccessType.{}",
+            match self {
+                AccessType::Private => "Private",
+                AccessType::Protected => "Protected",
+                AccessType::Public => "Public",
+            }
+        )
     }
 
     pub fn __hash__(&self) -> u64 {
@@ -113,7 +115,10 @@ impl NodeType {
             "semantic_model" => Ok(NodeType::SemanticModel),
             "unit_test" => Ok(NodeType::Unit),
             "fixture" => Ok(NodeType::Fixture),
-            _ => Err(pyo3::exceptions::PyValueError::new_err(format!("Unknown NodeType: {}", s))),
+            _ => Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "Unknown NodeType: {}",
+                s
+            ))),
         }
     }
 
@@ -159,26 +164,29 @@ impl NodeType {
     }
 
     pub fn __repr__(&self) -> String {
-        format!("NodeType.{}", match self {
-            NodeType::Model => "Model",
-            NodeType::Analysis => "Analysis",
-            NodeType::Test => "Test",
-            NodeType::Snapshot => "Snapshot",
-            NodeType::Operation => "Operation",
-            NodeType::Seed => "Seed",
-            NodeType::RPCCall => "RPCCall",
-            NodeType::SqlOperation => "SqlOperation",
-            NodeType::Documentation => "Documentation",
-            NodeType::Source => "Source",
-            NodeType::Macro => "Macro",
-            NodeType::Exposure => "Exposure",
-            NodeType::Metric => "Metric",
-            NodeType::Group => "Group",
-            NodeType::SavedQuery => "SavedQuery",
-            NodeType::SemanticModel => "SemanticModel",
-            NodeType::Unit => "Unit",
-            NodeType::Fixture => "Fixture",
-        })
+        format!(
+            "NodeType.{}",
+            match self {
+                NodeType::Model => "Model",
+                NodeType::Analysis => "Analysis",
+                NodeType::Test => "Test",
+                NodeType::Snapshot => "Snapshot",
+                NodeType::Operation => "Operation",
+                NodeType::Seed => "Seed",
+                NodeType::RPCCall => "RPCCall",
+                NodeType::SqlOperation => "SqlOperation",
+                NodeType::Documentation => "Documentation",
+                NodeType::Source => "Source",
+                NodeType::Macro => "Macro",
+                NodeType::Exposure => "Exposure",
+                NodeType::Metric => "Metric",
+                NodeType::Group => "Group",
+                NodeType::SavedQuery => "SavedQuery",
+                NodeType::SemanticModel => "SemanticModel",
+                NodeType::Unit => "Unit",
+                NodeType::Fixture => "Fixture",
+            }
+        )
     }
 
     pub fn __hash__(&self) -> u64 {
