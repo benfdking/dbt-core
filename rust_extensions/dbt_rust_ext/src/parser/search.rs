@@ -63,6 +63,14 @@ impl From<&Bound<'_, PythonFileBlock>> for FileBlock {
 
 pub struct BlockContents {}
 
+impl BlockContents {
+    pub fn factory() -> SourceTagFactory {
+        Box::new(|block_tag| {
+            unimplemented!()
+        })
+    }
+}
+
 pub trait BlockSearchResult {}
 
 impl BlockSearchResult for PythonBlockContents {}

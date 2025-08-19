@@ -102,7 +102,7 @@ impl DocumentationParser {
         let searcher = BlockSearcher::new(
             vec![block],
             HashSet::from_iter(vec!["doc".to_string()]),
-            BlockContents::factory(),
+            Box::new(BlockContents::factory()),
             Some(true),
         );
         let results = searcher.iterator_return_all();
@@ -126,7 +126,7 @@ impl DocumentationParser {
 
 impl From<Box<dyn BlockSearchResult>> for FileBlock {
     fn from(block: Box<dyn BlockSearchResult>) -> Self {
-        unimplemented!()
+        unimplemented!("From<Box<dyn BlockSearchResult>> for FileBlock not implemented")
     }
 }
 
