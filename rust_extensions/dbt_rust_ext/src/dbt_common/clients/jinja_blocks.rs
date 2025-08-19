@@ -82,14 +82,37 @@ impl fmt::Debug for BlockTag {
 }
 
 #[derive(Debug, Clone)]
+pub struct RegexMatch {
+    haystack: String,
+    start: usize,
+    end: usize,
+}
+
+impl RegexMatch {
+    pub fn start(&self) -> usize {
+        self.start
+    }
+
+    pub fn end(&self) -> usize {
+        self.end
+    }
+}
+
+impl <'a> From<regex::Match<'a>> for RegexMatch {
+    fn from(match_: regex::Match<'a>) -> Self {
+        Self { haystack: match_.as_str().to_string(), start: match_.start(), end: match_.end() }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct PositionedMatch {
     pub start_pos: usize,
-    pub match_: Option<regex::Match<'static>>,
+    pub match_: Option<RegexMatch>,
 }
 
 impl PositionedMatch {
-    pub fn new(start_pos: usize, match_: Option<regex::Match<'static>>) -> Self {
-        Self { start_pos, match_ }
+    pub fn new(start_pos: usize, match_: Option<regex::Match<'_>>) -> Self {
+        Self { start_pos, match_: match_.map(|m| m.into()) }
     }
 }
 
@@ -156,16 +179,16 @@ impl TagIterator {
         self.pos = self.pos - amount;
     }
 
-    fn _search(&mut self, pattern: &'static str) -> Option<PositionedMatch> {
+    fn _search(&mut self, pattern: String) -> Option<PositionedMatch> {
         // Check to see if we have cached a search for this pattern already.
-        let positioned_match = self.past_matches.get(pattern).cloned();
+        let positioned_match = self.past_matches.get(&pattern).cloned();
 
         if positioned_match.is_none() || positioned_match.as_ref().unwrap().1.start_pos > self.pos {
             // We did not have a cached search, or we did, but it was done at a location
             // further along in the string and can't be used. Do a search and cache it.
-            let regex = Regex::new(pattern).unwrap();
+            let regex = Regex::new(&pattern).unwrap();
             let match_result = regex.find_at(&self.text, self.pos as usize);
-            let positioned_match = PositionedMatch::new(self.pos, match_result.clone());
+            let positioned_match = PositionedMatch::new(self.pos, match_result);
             self.past_matches
                 .insert(pattern.to_string(), (regex, positioned_match.clone()));
             Some(positioned_match)
@@ -184,7 +207,7 @@ impl TagIterator {
             } else {
                 // ...but we have passed the start of the cached match, and need to do a
                 // new search from our current position and cache it.
-                let (regex, _) = self.past_matches.get(pattern).unwrap();
+                let (regex, _) = self.past_matches.get(&pattern).unwrap();
                 let match_result = regex.find_at(&self.text, self.pos as usize);
                 let new_positioned_match =
                     PositionedMatch::new(self.pos.clone(), match_result.clone());
@@ -200,7 +223,7 @@ impl TagIterator {
     fn _first_match(&mut self, patterns: &[&str]) -> Option<PositionedMatch> {
         let mut matches = Vec::new();
         for pattern in patterns {
-            if let Some(matched) = self._search(pattern) {
+            if let Some(matched) = self._search(pattern.to_string()) {
                 matches.push(matched);
             }
         }
@@ -214,9 +237,35 @@ impl TagIterator {
             .min_by_key(|m| m.match_.as_ref().unwrap().end())
     }
 
-    pub fn find_tags(&self) -> Vec<Tag> {
+    pub fn find_tags(&mut self) -> Vec<Tag> {
         loop {
-            unimplemented!()
+            let match_ = self._first_match(&[
+                COMMENT_START_PATTERN,
+                RAW_START_PATTERN,
+                EXPR_START_PATTERN,
+            ]);
+            if match_.is_none() {
+                break;
+            }
+
+            self.advance(match_.unwrap().start_pos);
+
+            let match_obj = match_.match_.as_ref().unwrap();
+            let matched_text = match_obj.as_str();
+
+            // Determine which pattern matched by checking the content
+            if matched_text.starts_with("{{#") || matched_text.starts_with("{#") {
+                self.handle_comment(&match_);
+            } else if matched_text.starts_with("{{") {
+                self.handle_expr(&match_);
+            } else if matched_text.starts_with("{%") {
+                // Extract block type name from the tag
+                if let Some(tag) = self.handle_tag(&match_) {
+                    // yield tag (in Rust, we'll collect these)
+                }
+            } else {
+                panic!("Invalid regex match in find_tags, expected block start, expr start, or comment start");
+            }
         }
 
         unimplemented!("find_tags not implemented")
