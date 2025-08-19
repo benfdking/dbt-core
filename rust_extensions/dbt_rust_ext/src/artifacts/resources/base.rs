@@ -2,13 +2,14 @@ use crate::artifacts::resources::types::NodeType;
 use pyo3::prelude::*;
 
 #[pyclass]
+#[derive(Clone)]
 pub struct BaseResource {
-    name: String,
-    resource_type: NodeType,
-    package_name: String,
-    path: String,
-    original_file_path: String,
-    unique_id: String,
+    pub name: String,
+    pub resource_type: NodeType,
+    pub package_name: String,
+    pub path: String,
+    pub original_file_path: String,
+    pub unique_id: String,
 }
 
 impl BaseResource {

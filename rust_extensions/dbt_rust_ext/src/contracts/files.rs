@@ -115,3 +115,6 @@ pub fn parse_file_type_to_parser(py: Python<'_>) -> PyResult<Bound<'_, PyDict>> 
     dict.set_item("Fixture", "FixtureParser")?;
     Ok(dict)
 }
+
+pub type PythonSourceFile = PyObject;
+

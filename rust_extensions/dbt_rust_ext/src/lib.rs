@@ -3,6 +3,7 @@ pub mod config;
 pub mod contracts;
 pub mod parser;
 pub mod clients;
+pub mod dbt_common;
 
 use contracts::files::{parse_file_type_to_parser, ParseFileType};
 use parser::partial::key_to_prefix;

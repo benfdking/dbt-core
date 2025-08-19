@@ -9,7 +9,7 @@ pub struct Documentation {
 }
 
 impl Documentation {
-    fn new(base_resource: BaseResource, block_contents: String) -> Self {
+    pub fn new(base_resource: BaseResource, block_contents: String) -> Self {
         Self {
             base_resource,
             block_contents,

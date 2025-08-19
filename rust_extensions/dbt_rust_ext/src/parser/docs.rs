@@ -1,11 +1,18 @@
+use std::collections::HashSet;
+
 use pyo3::{prelude::*, types::PyType};
 
 use crate::{
-    artifacts::resources::{base::BaseResource, types::NodeType},
+    artifacts::{
+        self,
+        resources::{base::BaseResource, types::NodeType},
+    },
     clients::jinja::get_rendered,
     config::runtime::RuntimeConfig,
-    contracts::graph::{Documentation, Manifest},
-    parser::search::{block_contents_get_contents, block_contents_get_name, FileBlock},
+    contracts::graph::{manifest_add_doc, Documentation, Manifest},
+    parser::search::{
+        block_contents_get_contents, block_contents_get_name, block_get_file_path_original_file_path, block_get_file_path_relative_path, BlockSearcher, FileBlock, PythonFileBlock
+    },
 };
 
 #[pyclass]
@@ -24,7 +31,7 @@ impl DocumentationParser {
     #[classmethod]
     fn get_compiled_path(
         cls: &Bound<'_, PyType>,
-        block: &Bound<'_, FileBlock>,
+        block: &Bound<'_, PythonFileBlock>,
     ) -> PyResult<PyObject> {
         // Assumes block has attribute 'path', which has attribute 'relative_path'
         let path = block.getattr("path")?;
@@ -50,7 +57,7 @@ impl DocumentationParser {
         Ok(format!("doc.{project_name}.{resource_name}"))
     }
 
-    fn parse_block(&self, py: Python<'_>, block: &Bound<'_, FileBlock>) -> Vec<Documentation> {
+    fn parse_block(&self, py: Python<'_>, block: &Bound<'_, PythonFileBlock>) -> Vec<Documentation> {
         let name = block_contents_get_name(block);
         let unique_id = self.generate_unique_id(py, &name, None).unwrap();
 
@@ -58,15 +65,47 @@ impl DocumentationParser {
         let unstripped_conents = get_rendered(&block_contents, None);
         let stripped_contents = unstripped_conents.trim();
 
-        let base_resource = BaseResource::new(
-
+        let base_resource = BaseResource {
+            path: block_get_file_path_relative_path(block),
+            original_file_path: block_get_file_path_original_file_path(block),
+            name: name,
+            resource_type: NodeType::Documentation,
+            package_name: self.project.project_name(py).unwrap(),
+            unique_id: unique_id,
+        };
+        let documentation_resource = artifacts::resources::v1::documentation::Documentation::new(
+            base_resource.clone(),
+            stripped_contents.to_string(),
         );
-        let doc = Documentation::new(base_resource, stripped_contents);
+        let doc = Documentation::new(base_resource, documentation_resource);
 
-        unimplemented!()
+        vec![doc]
     }
 
-    fn parse_file(&self, file_block: &Bound<'_, FileBlock>) -> PyResult<Vec<Documentation>> {
-        panic!("Not implemented");
+    fn parse_file(&self, file_block: &Bound<'_, PythonFileBlock>) -> PyResult<()> {
+        // Assert that file_block.file is a SourceFile
+        let file = file_block.getattr("file")?;
+        let source_file_type = file.get_type();
+        if source_file_type.name()? != "SourceFile" {
+            return Err(PyErr::new::<pyo3::exceptions::PyAssertionError, _>(
+                "Expected file_block.file to be a SourceFile"
+            ));
+        }
+
+        let file_block: FileBlock = file_block.into();
+
+        let searcher = BlockSearcher::new(
+            vec![file_block],
+            HashSet::from_iter(vec!["doc".to_string()]),
+            Some(true),
+        );
+        let results = searcher.iterator_return_all();
+        for block in results {
+            let docs = self.parse_block(py, &block);
+            for doc in docs {
+                manifest_add_doc(manifest, python_file_block_get_file(file_block)?, doc);
+            }
+        }
+        Ok(())
     }
 }
