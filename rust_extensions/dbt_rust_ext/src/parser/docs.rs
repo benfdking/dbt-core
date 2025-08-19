@@ -18,6 +18,7 @@ use crate::{
 #[pyclass]
 pub struct DocumentationParser {
     project: RuntimeConfig,
+    manifest: Manifest,
 }
 
 #[pymethods]
@@ -25,7 +26,7 @@ impl DocumentationParser {
     #[new]
     #[pyo3(signature = (project, root_project, manifest))]
     fn new(project: RuntimeConfig, root_project: RuntimeConfig, manifest: Manifest) -> Self {
-        Self { project }
+        Self { project, manifest }
     }
 
     #[classmethod]
@@ -82,7 +83,7 @@ impl DocumentationParser {
         vec![doc]
     }
 
-    fn parse_file(&self, file_block: &Bound<'_, PythonFileBlock>) -> PyResult<()> {
+    fn parse_file(&self, py: Python<'_>, file_block: &Bound<'_, PythonFileBlock>) -> PyResult<()> {
         // Assert that file_block.file is a SourceFile
         let file = file_block.getattr("file")?;
         let source_file_type = file.get_type();
@@ -103,7 +104,7 @@ impl DocumentationParser {
         for block in results {
             let docs = self.parse_block(py, &block);
             for doc in docs {
-                manifest_add_doc(manifest, python_file_block_get_file(file_block)?, doc);
+                manifest_add_doc(self.manifest, python_file_block_get_file(file_block)?, doc);
             }
         }
         Ok(())

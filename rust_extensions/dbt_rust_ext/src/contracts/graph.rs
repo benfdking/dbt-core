@@ -6,7 +6,7 @@ use crate::{artifacts::resources::{
 
 pub type Manifest = PyObject;
 
-pub fn manifest_add_doc(manifest: &Bound<'_, Manifest>, source_file: PythonSourceFile, doc: Documentation) -> PyResult<()> {
+pub fn manifest_add_doc(manifest: Manifest, source_file: PythonSourceFile, doc: Documentation) -> PyResult<()> {
     let py = manifest.py();
     let manifest_obj = manifest.as_any();
     manifest_obj.call_method1("add_doc", (source_file, doc))?;
