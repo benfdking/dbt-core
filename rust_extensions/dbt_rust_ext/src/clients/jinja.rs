@@ -18,6 +18,6 @@ pub fn get_rendered(template: &str, context: Option<&Bound<'_, PyAny>>) -> Strin
     if !has_render_chars {
         return template.to_string();
     } else {
-        unimplemented!()
+        unimplemented!("get_rendered not implemented")
     }
 }

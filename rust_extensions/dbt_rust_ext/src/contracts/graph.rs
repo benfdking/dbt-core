@@ -1,14 +1,21 @@
 use pyo3::prelude::*;
 
-use crate::{artifacts::resources::{
-    base::BaseResource, v1::documentation::Documentation as DocumentationResource,
-}, contracts::files::PythonSourceFile};
+use crate::{
+    artifacts::resources::{
+        base::BaseResource, v1::documentation::Documentation as DocumentationResource,
+    },
+    contracts::files::PythonSourceFile,
+};
 
 pub type Manifest = PyObject;
 
-pub fn manifest_add_doc(manifest: Manifest, source_file: PythonSourceFile, doc: Documentation) -> PyResult<()> {
-    let py = manifest.py();
-    let manifest_obj = manifest.as_any();
+pub fn manifest_add_doc(
+    python: Python<'_>,
+    manifest: &Manifest,
+    source_file: PythonSourceFile,
+    doc: Documentation,
+) -> PyResult<()> {
+    let manifest_obj = manifest.bind(python);
     manifest_obj.call_method1("add_doc", (source_file, doc))?;
     Ok(())
 }

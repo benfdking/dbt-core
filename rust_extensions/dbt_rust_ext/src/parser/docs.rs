@@ -11,7 +11,7 @@ use crate::{
     config::runtime::RuntimeConfig,
     contracts::graph::{manifest_add_doc, Documentation, Manifest},
     parser::search::{
-        block_contents_get_contents, block_contents_get_name, block_get_file_path_original_file_path, block_get_file_path_relative_path, BlockSearcher, FileBlock, PythonFileBlock
+        block_contents_get_contents, block_contents_get_name, block_get_file_path_original_file_path, block_get_file_path_relative_path, python_file_block_get_file, BlockContents, BlockSearchResult, BlockSearcher, FileBlock, PythonFileBlock
     },
 };
 
@@ -58,7 +58,11 @@ impl DocumentationParser {
         Ok(format!("doc.{project_name}.{resource_name}"))
     }
 
-    fn parse_block(&self, py: Python<'_>, block: &Bound<'_, PythonFileBlock>) -> Vec<Documentation> {
+    fn parse_block(
+        &self,
+        py: Python<'_>,
+        block: &Bound<'_, PythonFileBlock>,
+    ) -> Vec<Documentation> {
         let name = block_contents_get_name(block);
         let unique_id = self.generate_unique_id(py, &name, None).unwrap();
 
@@ -89,24 +93,45 @@ impl DocumentationParser {
         let source_file_type = file.get_type();
         if source_file_type.name()? != "SourceFile" {
             return Err(PyErr::new::<pyo3::exceptions::PyAssertionError, _>(
-                "Expected file_block.file to be a SourceFile"
+                "Expected file_block.file to be a SourceFile",
             ));
         }
 
-        let file_block: FileBlock = file_block.into();
+        let block: FileBlock = file_block.into();
 
         let searcher = BlockSearcher::new(
-            vec![file_block],
+            vec![block],
             HashSet::from_iter(vec!["doc".to_string()]),
+            BlockContents::factory(),
             Some(true),
         );
         let results = searcher.iterator_return_all();
         for block in results {
-            let docs = self.parse_block(py, &block);
+            let docs = self.parse_block_internal(&block.into());
             for doc in docs {
-                manifest_add_doc(self.manifest, python_file_block_get_file(file_block)?, doc);
+                let result = manifest_add_doc(
+                    py,
+                    &self.manifest,
+                    python_file_block_get_file(file_block)?,
+                    doc,
+                );
+                if result.is_err() {
+                    panic!("Failed to add doc to manifest");
+                }
             }
         }
         Ok(())
+    }
+}
+
+impl From<Box<dyn BlockSearchResult>> for FileBlock {
+    fn from(block: Box<dyn BlockSearchResult>) -> Self {
+        unimplemented!()
+    }
+}
+
+impl DocumentationParser {
+    fn parse_block_internal(&self, file_block: &FileBlock) -> Vec<Documentation> {
+        unimplemented!("parse_block_internal not implemented")
     }
 }

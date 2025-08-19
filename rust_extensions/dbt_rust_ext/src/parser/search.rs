@@ -7,19 +7,23 @@ use crate::{
 
 pub type PythonFileBlock = PyAny;
 
-pub fn python_file_block_get_file(block: &Bound<'_, PythonFileBlock>) -> PyResult<PythonSourceFile> {
+pub fn python_file_block_get_file(
+    block: &Bound<'_, PythonFileBlock>,
+) -> PyResult<PythonSourceFile> {
     let file = block.getattr("file")?;
     Ok(file.into())
 }
 
-pub type BlockContents = PyAny;
+pub type PythonBlockContents = PyAny;
 
-pub fn block_contents_get_name(block_contents: &Bound<'_, BlockContents>) -> String {
+pub fn block_contents_get_name(block_contents: &Bound<'_, PythonBlockContents>) -> String {
     let name = block_contents.getattr("name").unwrap();
     name.extract::<String>().unwrap()
 }
 
-pub fn block_contents_get_contents(block_contents: &Bound<'_, BlockContents>) -> Option<String> {
+pub fn block_contents_get_contents(
+    block_contents: &Bound<'_, PythonBlockContents>,
+) -> Option<String> {
     let contents = block_contents.getattr("contents").unwrap();
     contents.extract::<Option<String>>().unwrap()
 }
@@ -57,22 +61,33 @@ impl From<&Bound<'_, PythonFileBlock>> for FileBlock {
     }
 }
 
+pub struct BlockContents {}
+
+pub trait BlockSearchResult {}
+
+impl BlockSearchResult for PythonBlockContents {}
+
 pub struct BlockSearcher {
     source: Vec<FileBlock>,
     allowed_blocks: std::collections::HashSet<String>,
     check_jinja: bool,
+    source_tag_factory: SourceTagFactory,
 }
+
+type SourceTagFactory = Box<dyn Fn(BlockTag) -> Box<dyn BlockSearchResult>>;
 
 impl BlockSearcher {
     pub fn new(
         source: Vec<FileBlock>,
         allowed_blocks: std::collections::HashSet<String>,
+        source_tag_factory: SourceTagFactory,
         check_jinja: Option<bool>,
     ) -> Self {
         Self {
             source,
             allowed_blocks,
             check_jinja: check_jinja.unwrap_or(true),
+            source_tag_factory,
         }
     }
 
@@ -82,14 +97,14 @@ impl BlockSearcher {
         blocks
     }
 
-    pub fn iterator_return_all(&self) -> Vec<FileBlock> {
-        let results: Vec<FileBlock> = Vec::new();
-        unimplemented!()
-        // for entry in self.source {
-        //     for block in self.extract_blocks(&entry) {
-        //         results.push(entry);
-        //     }
-        // }
-        // results
+    pub fn iterator_return_all(&self) -> Vec<Box<dyn BlockSearchResult>> {
+        let mut results: Vec<Box<dyn BlockSearchResult>> = Vec::new();
+        for entry in &self.source {
+            for block in self.extract_blocks(&entry) {
+                let out = (self.source_tag_factory)(block);
+                results.push(out);
+            }
+        }
+        results
     }
 }
