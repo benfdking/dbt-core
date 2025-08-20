@@ -1,6 +1,8 @@
 use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
+use std::option::Option;
+use std::vec::Vec;
 
 pub struct BlockTag {
     pub block_type_name: String,
@@ -98,9 +100,13 @@ impl RegexMatch {
     }
 }
 
-impl <'a> From<regex::Match<'a>> for RegexMatch {
+impl<'a> From<regex::Match<'a>> for RegexMatch {
     fn from(match_: regex::Match<'a>) -> Self {
-        Self { haystack: match_.as_str().to_string(), start: match_.start(), end: match_.end() }
+        Self {
+            haystack: match_.as_str().to_string(),
+            start: match_.start(),
+            end: match_.end(),
+        }
     }
 }
 
@@ -112,7 +118,10 @@ pub struct PositionedMatch {
 
 impl PositionedMatch {
     pub fn new(start_pos: usize, match_: Option<regex::Match<'_>>) -> Self {
-        Self { start_pos, match_: match_.map(|m| m.into()) }
+        Self {
+            start_pos,
+            match_: match_.map(|m| m.into()),
+        }
     }
 }
 
@@ -237,43 +246,63 @@ impl TagIterator {
             .min_by_key(|m| m.match_.as_ref().unwrap().end())
     }
 
+    fn handle_comment(&mut self, match_: &PositionedMatch) -> Option<Tag> {
+        unimplemented!("handle_comment not implemented")
+    }
+
+    fn handle_expr(&mut self, match_: &PositionedMatch) -> Option<Tag> {
+        unimplemented!("handle_expr not implemented")
+    }
+
+    fn handle_tag(&mut self, match_: &PositionedMatch) -> Option<Tag> {
+        unimplemented!("handle_tag not implemented")
+    }
+
     pub fn find_tags(&mut self) -> Vec<Tag> {
         loop {
-            let match_ = self._first_match(&[
-                COMMENT_START_PATTERN,
-                RAW_START_PATTERN,
-                EXPR_START_PATTERN,
-            ]);
-            if match_.is_none() {
-                break;
-            }
-
-            self.advance(match_.unwrap().start_pos);
-
-            let match_obj = match_.match_.as_ref().unwrap();
-            let matched_text = match_obj.as_str();
-
-            // Determine which pattern matched by checking the content
-            if matched_text.starts_with("{{#") || matched_text.starts_with("{#") {
-                self.handle_comment(&match_);
-            } else if matched_text.starts_with("{{") {
-                self.handle_expr(&match_);
-            } else if matched_text.starts_with("{%") {
-                // Extract block type name from the tag
-                if let Some(tag) = self.handle_tag(&match_) {
-                    // yield tag (in Rust, we'll collect these)
+            let match_ =
+                self._first_match(&[COMMENT_START_PATTERN, RAW_START_PATTERN, EXPR_START_PATTERN]);
+            match match_ {
+                None => {
+                    break;
                 }
-            } else {
-                panic!("Invalid regex match in find_tags, expected block start, expr start, or comment start");
+                Some(match_) => {
+                    self.advance(match_.start_pos);
+
+                    let comment_start = match_.match_.as_ref()
+                        .and_then(|m| m.name("comment_start"))
+                        .map(|m| m.as_str());
+                    let expr_start = match_.match_.as_ref()
+                        .and_then(|m| m.name("expr_start"))
+                        .map(|m| m.as_str());
+                    let block_type_name = match_.match_.as_ref()
+                        .and_then(|m| m.name("block_type_name"))
+                        .map(|m| m.as_str());
+
+                    if comment_start.is_some() {
+                        self.handle_comment(&match_);
+                    } else if expr_start.is_some() {
+                        self.handle_expr(&match_);
+                    } else if block_type_name.is_some() {
+                        if let Some(tag) = self.handle_tag(&match_) {
+                            // yield equivalent - for now we'll collect in a vector
+                            // TODO: implement proper yielding/iteration
+                        }
+                    } else {
+                        panic!(
+                            "Invalid regex match in find_tags, expected block start, \
+                            expr start, or comment start"
+                        );
+                    }
+
+
+                }
             }
         }
 
         unimplemented!("find_tags not implemented")
     }
 }
-
-use std::option::Option;
-use std::vec::Vec;
 
 pub struct BlockIterator<'a> {
     pub tag_parser: TagIterator,
@@ -299,7 +328,7 @@ impl<'a> BlockIterator<'a> {
 
     /// Find all top-level blocks in the data.
     pub fn find_blocks(
-        &self,
+        &mut self,
         allowed_blocks: Option<&std::collections::HashSet<String>>,
         collect_raw_data: Option<bool>,
     ) -> Vec<BlockTag> {
@@ -321,7 +350,7 @@ impl<'a> BlockIterator<'a> {
     }
 
     pub fn lex_for_blocks(
-        &self,
+        &mut self,
         allowed_blocks: Option<&std::collections::HashSet<String>>,
         collect_raw_data: Option<bool>,
     ) -> Vec<BlockTag> {
