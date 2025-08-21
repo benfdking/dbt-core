@@ -1,9 +1,8 @@
 use pyo3::prelude::*;
 
-use crate::{
-    contracts::files::PythonSourceFile,
-    dbt_common::clients::{jinja::extract_top_level_blocks, jinja_blocks::BlockTag},
-};
+use dbt_common::clients::{jinja::extract_top_level_blocks, jinja_blocks::BlockTag};
+
+use crate::contracts::files::PythonSourceFile;
 
 pub type PythonFileBlock = PyAny;
 

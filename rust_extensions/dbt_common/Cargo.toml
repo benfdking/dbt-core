@@ -1,0 +1,11 @@
+[package]
+name = "dbt_common"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "dbt_common"
+crate-type = ["rlib"]
+
+[dependencies]
+regex = "1.11.1"

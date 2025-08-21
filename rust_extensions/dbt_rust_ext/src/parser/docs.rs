@@ -18,6 +18,7 @@ use crate::{
 #[pyclass]
 pub struct DocumentationParser {
     project: RuntimeConfig,
+    #[pyo3(get)]
     manifest: Manifest,
 }
 

@@ -1,4 +1,4 @@
-use regex::{Match, Regex};
+use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
 use std::option::Option;
@@ -13,7 +13,7 @@ pub struct BlockTag {
 
 pub struct BlockIterator<'a> {
     pub tag_parser: TagIterator,
-    pub warning_callback: Option<&'a dyn Fn(/* ExtractWarning */)>,
+    pub warning_callback: Option<&'a dyn Fn(&str)>,
     pub current: Option<Tag>,
     pub stack: Vec<String>,
     pub last_position: isize,
@@ -22,7 +22,7 @@ pub struct BlockIterator<'a> {
 impl<'a> BlockIterator<'a> {
     pub fn new(
         tag_iterator: TagIterator,
-        warning_callback: Option<&'a dyn Fn(/* ExtractWarning */)>,
+        warning_callback: Option<&'a dyn Fn(&str)>,
     ) -> Self {
         Self {
             tag_parser: tag_iterator,
@@ -117,18 +117,24 @@ impl<'a> BlockIterator<'a> {
             } else if self.is_current_end(&tag) {
                 self.last_position = tag.end as isize;
                 assert!(self.current.is_some());
+                let current = self.current.as_ref().unwrap();
+                let contents = self.tag_parser.text[current.end..tag.start].to_string();
+                let full_block = self.tag_parser.text[current.start..tag.end].to_string();
                 blocks.push(BlockTag {
-                    block_type_name: self.current.as_ref().unwrap().block_type_name.clone(),
-                    block_name: self.current.as_ref().unwrap().block_name.clone().unwrap(),
-                    contents: None,
-                    full_block: None,
+                    block_type_name: current.block_type_name.clone(),
+                    block_name: current.block_name.clone().unwrap(),
+                    contents: Some(contents),
+                    full_block: Some(full_block),
                 });
                 self.current = None;
-            } else if self.current.is_none() {
-                return Err(format!(
-                    "unexpected_block: Found unexpected {} block tag.",
-                    self.current.as_ref().unwrap().block_type_name
-                ));
+            } else if self.current.is_none() && self.warning_callback.is_some() {
+                // Warn on unexpected top-level tags
+                if let Some(callback) = &self.warning_callback {
+                    callback(&format!(
+                        "unexpected_block: Found unexpected '{}' block tag.",
+                        tag.block_type_name
+                    ));
+                }
             };
         }
 
@@ -315,7 +321,7 @@ static RAW_BLOCK_PATTERN: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\{%\s*raw\s*%\}.*?\{%\s*endraw\s*%\}").unwrap());
 
 static BLOCK_START_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\{%\s*(?P<block_type_name>\w+)(?:\s+(?P<block_name>\w+))?").unwrap()
+    Regex::new(r"(?:\s*\{%-|\{%)\s*(?P<block_type_name>[A-Za-z_][A-Za-z_0-9]*)(?:\s+(?P<block_name>[A-Za-z_][A-Za-z_0-9]*))?").unwrap()
 });
 
 static COMMENT_START_PATTERN: LazyLock<Regex> =
@@ -364,7 +370,7 @@ impl std::fmt::Display for TagIteratorError {
 impl std::error::Error for TagIteratorError {}
 
 pub struct TagIterator {
-    text: String,
+    pub text: String,
     pos: usize,
     // Cache stores position and optional match bounds
     past_matches: HashMap<String, (usize, Option<(usize, usize)>)>,

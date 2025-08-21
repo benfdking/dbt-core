@@ -8,5 +8,6 @@ name = "dbt_rust_ext"
 crate-type = ["cdylib"]
 
 [dependencies]
+dbt_common = { path = "../dbt_common" }
 pyo3 = { version = "0.22", features = ["extension-module"] }
 regex = "1.11.1"

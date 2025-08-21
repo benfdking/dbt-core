@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "dbt_common",
+    "dbt_rust_ext",
+]
+resolver = "2"
