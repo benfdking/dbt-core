@@ -44,8 +44,9 @@ pub fn block_get_file_path_original_file_path(block: &Bound<'_, PythonFileBlock>
     original_file_path.extract::<String>().unwrap()
 }
 
+#[derive(Debug, Clone)]
 pub struct FileBlock {
-    contents: String,
+    pub contents: String,
 }
 
 impl From<&Bound<'_, PythonFileBlock>> for FileBlock {
@@ -60,19 +61,33 @@ impl From<&Bound<'_, PythonFileBlock>> for FileBlock {
     }
 }
 
-pub struct BlockContents {}
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct BlockContents {
+    #[pyo3(get)]
+    contents: String,
+}
 
 impl BlockContents {
     pub fn factory() -> SourceTagFactory {
         Box::new(|block_tag| {
-            unimplemented!()
+            println!("Block tag: {:?}", block_tag);
+            Box::new(BlockContents {
+                contents: block_tag.contents.unwrap(),
+            })
         })
     }
 }
 
-pub trait BlockSearchResult {}
+pub trait BlockSearchResult {
+    fn contents(&self) -> String;
+}
 
-impl BlockSearchResult for PythonBlockContents {}
+impl BlockSearchResult for BlockContents {
+    fn contents(&self) -> String {
+        self.contents.clone()
+    }
+}
 
 pub struct BlockSearcher {
     source: Vec<FileBlock>,

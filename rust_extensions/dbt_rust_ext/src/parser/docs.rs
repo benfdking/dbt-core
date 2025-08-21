@@ -11,7 +11,10 @@ use crate::{
     config::runtime::RuntimeConfig,
     contracts::graph::{manifest_add_doc, Documentation, Manifest},
     parser::search::{
-        block_contents_get_contents, block_contents_get_name, block_get_file_path_original_file_path, block_get_file_path_relative_path, python_file_block_get_file, BlockContents, BlockSearchResult, BlockSearcher, FileBlock, PythonFileBlock
+        block_contents_get_contents, block_contents_get_name,
+        block_get_file_path_original_file_path, block_get_file_path_relative_path,
+        python_file_block_get_file, BlockContents, BlockSearchResult, BlockSearcher, FileBlock,
+        PythonFileBlock,
     },
 };
 
@@ -89,6 +92,7 @@ impl DocumentationParser {
     }
 
     fn parse_file(&self, py: Python<'_>, file_block: &Bound<'_, PythonFileBlock>) -> PyResult<()> {
+        println!("Parsing file: {:?}", file_block);
         // Assert that file_block.file is a SourceFile
         let file = file_block.getattr("file")?;
         let source_file_type = file.get_type();
@@ -102,12 +106,17 @@ impl DocumentationParser {
 
         let searcher = BlockSearcher::new(
             vec![block],
-            HashSet::from_iter(vec!["doc".to_string()]),
+            HashSet::from_iter(vec!["docs".to_string()]),
             Box::new(BlockContents::factory()),
             Some(true),
         );
         let results = searcher.iterator_return_all();
-        for block in results {
+        let blocks = results
+            .into_iter()
+            .map(|r| r.into())
+            .collect::<Vec<FileBlock>>();
+        println!("Blocks: {:?}", blocks);
+        for block in blocks {
             let docs = self.parse_block_internal(&block.into());
             for doc in docs {
                 let result = manifest_add_doc(
@@ -127,12 +136,14 @@ impl DocumentationParser {
 
 impl From<Box<dyn BlockSearchResult>> for FileBlock {
     fn from(block: Box<dyn BlockSearchResult>) -> Self {
-        unimplemented!("From<Box<dyn BlockSearchResult>> for FileBlock not implemented")
+        let block_contents = block.contents();
+        FileBlock { contents: block_contents }
     }
 }
 
 impl DocumentationParser {
     fn parse_block_internal(&self, file_block: &FileBlock) -> Vec<Documentation> {
+
         unimplemented!("parse_block_internal not implemented")
     }
 }
