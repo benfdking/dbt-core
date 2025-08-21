@@ -1,4 +1,4 @@
-use regex::Regex;
+use regex::{Match, Regex};
 use std::collections::HashMap;
 use std::fmt;
 use std::option::Option;
@@ -155,7 +155,7 @@ pub struct TagIterator {
     pub pos: usize,
     // A cache of the most recent matches seen for each pattern, maintained
     // in order to avoid slowly re-searching long inputs many times.
-    pub past_matches: HashMap<String, (Regex, PositionedMatch)>,
+    // pub past_matches: HashMap<String, Match>,
 }
 
 impl TagIterator {
@@ -163,14 +163,14 @@ impl TagIterator {
         Self {
             text,
             pos: 0,
-            past_matches: HashMap::new(),
+            // past_matches: HashMap::new(),
         }
     }
 
     // Return relative position in line.
     // Given an absolute position in the input data, return a pair of
     // line number + relative position to the start of the line.
-    pub fn linepos(&self, end: Option<isize>) -> String {
+    pub fn linepos(&'_ self, end: Option<isize>) -> String {
         let end_val = end.unwrap_or(self.pos as isize);
         let text = &self.text[..end_val as usize];
         // if not found, rfind returns None, so we use 0 as the start
@@ -188,62 +188,77 @@ impl TagIterator {
         self.pos = self.pos - amount;
     }
 
-    fn _search(&mut self, pattern: String) -> Option<PositionedMatch> {
+    fn _search<'a>(&'a mut self, pattern: &'a Regex) -> Option<Match<'a>> {
         // Check to see if we have cached a search for this pattern already.
-        let positioned_match = self.past_matches.get(&pattern).cloned();
+        // let positioned_match = self.past_matches.get(&pattern).cloned();
 
-        if positioned_match.is_none() || positioned_match.as_ref().unwrap().1.start_pos > self.pos {
-            // We did not have a cached search, or we did, but it was done at a location
-            // further along in the string and can't be used. Do a search and cache it.
-            let regex = Regex::new(&pattern).unwrap();
-            let match_result = regex.find_at(&self.text, self.pos as usize);
-            let positioned_match = PositionedMatch::new(self.pos, match_result);
-            self.past_matches
-                .insert(pattern.to_string(), (regex, positioned_match.clone()));
-            Some(positioned_match)
-        } else {
-            let positioned_match = positioned_match.unwrap();
-            // We have a cached search and its start position falls before (or at) the
-            // current search position...
-            if positioned_match.1.match_.is_none() {
-                // ...but there is no match in the rest of the text.
-                None
-            } else if positioned_match.1.match_.as_ref().unwrap().start() >= self.pos {
-                Some(PositionedMatch {
-                    start_pos: self.pos,
-                    match_: positioned_match.1.match_.clone(),
-                })
-            } else {
-                // ...but we have passed the start of the cached match, and need to do a
-                // new search from our current position and cache it.
-                let (regex, _) = self.past_matches.get(&pattern).unwrap();
-                let match_result = regex.find_at(&self.text, self.pos as usize);
-                let new_positioned_match =
-                    PositionedMatch::new(self.pos.clone(), match_result.clone());
-                self.past_matches.insert(
-                    pattern.to_string(),
-                    (regex.clone(), new_positioned_match.clone()),
-                );
-                Some(new_positioned_match)
-            }
-        }
+        // if positioned_match.is_none() || positioned_match.as_ref().unwrap().1.start_pos > self.pos {
+        // We did not have a cached search, or we did, but it was done at a location
+        // further along in the string and can't be used. Do a search and cache it.
+        // let regex = Regex::new(&pattern).unwrap();
+        pattern.find_at(&self.text, self.pos as usize)
+        // let positioned_match = PositionedMatch::new(self.pos, match_result);
+        // self.past_matches
+        //     .insert(pattern.to_string(), (regex, positioned_match.clone()));
+        //     Some(positioned_match)
+        // } else {
+        // let positioned_match = positioned_match.unwrap();
+        // // We have a cached search and its start position falls before (or at) the
+        // // current search position...
+        // if positioned_match.1.match_.is_none() {
+        //     // ...but there is no match in the rest of the text.
+        //     None
+        // } else if positioned_match.1.match_.as_ref().unwrap().start() >= self.pos {
+        //     Some(PositionedMatch {
+        //         start_pos: self.pos,
+        //         match_: positioned_match.1.match_.clone(),
+        //     })
+        // } else {
+        //     // ...but we have passed the start of the cached match, and need to do a
+        //     // new search from our current position and cache it.
+        //     let (regex, _) = self.past_matches.get(&pattern).unwrap();
+        //     let match_result = regex.find_at(&self.text, self.pos as usize);
+        //     let new_positioned_match =
+        //         PositionedMatch::new(self.pos.clone(), match_result.clone());
+        //     // self.past_matches.insert(
+        //     //     pattern.to_string(),
+        //     //     (regex.clone(), new_positioned_match.clone()),
+        //     // );
+        //     Some(new_positioned_match)
+        // }
+        // }
     }
 
-    fn _first_match(&mut self, patterns: &[&str]) -> Option<PositionedMatch> {
+    fn _first_match<'a>(&'a mut self, patterns: &[&'a Regex]) -> Option<regex::Match<'a>> {
         let mut matches = Vec::new();
         for pattern in patterns {
-            if let Some(matched) = self._search(pattern.to_string()) {
+            if let Some(matched) = self._search(pattern) {
                 matches.push(matched);
             }
         }
         if matches.is_empty() {
             return None;
         }
+
         // if there are multiple matches, pick the least greedy match
         // TODO: do I need to account for match.start(), or is this ok?
-        matches
-            .into_iter()
-            .min_by_key(|m| m.match_.as_ref().unwrap().end())
+        matches.into_iter().min_by_key(|m| m.end())
+    }
+
+    fn _expect_match<'a>(
+        &'a mut self,
+        expected_name: &str,
+        patterns: &[&'a Regex],
+    ) -> Result<regex::Match<'a>, String> {
+        let match_ = self._first_match(patterns);
+        match match_ {
+            None => Err(format!(
+                "Unexpected EOF, expected {} at {}",
+                expected_name,
+                self.linepos(Some(self.pos as isize))
+            )),
+            Some(match_) => Ok(match_),
+        }
     }
 
     fn handle_comment(&mut self, match_: &PositionedMatch) -> Option<Tag> {
@@ -259,25 +274,34 @@ impl TagIterator {
     }
 
     pub fn find_tags(&mut self) -> Vec<Tag> {
+        let comment_start_pattern = comment_start_pattern();
+        let raw_start_pattern = raw_start_pattern();
+        let expr_start_pattern = expr_start_pattern();
+        let patterns = [
+            &comment_start_pattern,
+            &raw_start_pattern,
+            &expr_start_pattern,
+        ];
         loop {
-            let match_ =
-                self._first_match(&[COMMENT_START_PATTERN, RAW_START_PATTERN, EXPR_START_PATTERN]);
+            let match_ = self._first_match(&patterns);
             match match_ {
                 None => {
                     break;
                 }
                 Some(match_) => {
-                    self.advance(match_.start_pos);
+                    self.advance(match_.start());
 
-                    let comment_start = match_.match_.as_ref()
-                        .and_then(|m| m.name("comment_start"))
-                        .map(|m| m.as_str());
-                    let expr_start = match_.match_.as_ref()
-                        .and_then(|m| m.name("expr_start"))
-                        .map(|m| m.as_str());
-                    let block_type_name = match_.match_.as_ref()
-                        .and_then(|m| m.name("block_type_name"))
-                        .map(|m| m.as_str());
+                    let mut groups = HashMap::new();
+                    for name in match_.capture_names().flatten() {
+                        groups.insert(
+                            name.to_string(),
+                            caps.name(name).map(|m| m.as_str().to_string()),
+                        );
+                    }
+
+                    let comment_start = match_.name("comment_start");
+                    let expr_start = match_.name("expr_start");
+                    let block_type_name = match_.name("block_type_name");
 
                     if comment_start.is_some() {
                         self.handle_comment(&match_);
@@ -294,8 +318,6 @@ impl TagIterator {
                             expr start, or comment start"
                         );
                     }
-
-
                 }
             }
         }
