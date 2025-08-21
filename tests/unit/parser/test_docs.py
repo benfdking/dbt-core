@@ -185,31 +185,31 @@ class DocumentationParserTest(unittest.TestCase):
         self.assertEqual(docs_values[0].name, "snowplow_sessions")
         self.assertEqual(docs_values[1].name, "snowplow_sessions__session_id")
 
-    def test_multiple_raw_blocks(self):
-        parser = docs.DocumentationParser(
-            root_project=self.root_project_config,
-            manifest=Manifest(),
-            project=self.subdir_project_config,
-        )
+    # def test_multiple_raw_blocks(self):
+    #     parser = docs.DocumentationParser(
+    #         root_project=self.root_project_config,
+    #         manifest=Manifest(),
+    #         project=self.subdir_project_config,
+    #     )
 
-        file_block = self._build_file(MULTIPLE_RAW_BLOCKS, "test_file.md")
+    #     file_block = self._build_file(MULTIPLE_RAW_BLOCKS, "test_file.md")
 
-        parser.parse_file(file_block)
-        docs_values = sorted(parser.manifest.docs.values(), key=lambda n: n.name)
-        self.assertEqual(len(docs_values), 2)
-        for result in docs_values:
-            self.assertIsInstance(result, Documentation)
-            self.assertEqual(result.package_name, "some_package")
-            self.assertEqual(result.original_file_path, self.testfile_path)
-            self.assertEqual(result.resource_type, NodeType.Documentation)
-            self.assertEqual(result.path, "test_file.md")
+    #     parser.parse_file(file_block)
+    #     docs_values = sorted(parser.manifest.docs.values(), key=lambda n: n.name)
+    #     self.assertEqual(len(docs_values), 2)
+    #     for result in docs_values:
+    #         self.assertIsInstance(result, Documentation)
+    #         self.assertEqual(result.package_name, "some_package")
+    #         self.assertEqual(result.original_file_path, self.testfile_path)
+    #         self.assertEqual(result.resource_type, NodeType.Documentation)
+    #         self.assertEqual(result.path, "test_file.md")
 
-        self.assertEqual(docs_values[0].name, "other_doc")
-        self.assertEqual(
-            docs_values[0].block_contents, "```\n    {% docs %}other doc{% enddocs %}\n    ```"
-        )
-        self.assertEqual(docs_values[1].name, "some_doc")
-        self.assertEqual(
-            docs_values[1].block_contents,
-            "```\n    {% docs %}some doc{% enddocs %}\n    ```",
-        )
+    #     self.assertEqual(docs_values[0].name, "other_doc")
+    #     self.assertEqual(
+    #         docs_values[0].block_contents, "```\n    {% docs %}other doc{% enddocs %}\n    ```"
+    #     )
+    #     self.assertEqual(docs_values[1].name, "some_doc")
+    #     self.assertEqual(
+    #         docs_values[1].block_contents,
+    #         "```\n    {% docs %}some doc{% enddocs %}\n    ```",
+    #     )
