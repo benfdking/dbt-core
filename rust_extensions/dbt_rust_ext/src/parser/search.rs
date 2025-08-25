@@ -47,6 +47,7 @@ pub fn block_get_file_path_original_file_path(block: &Bound<'_, PythonFileBlock>
 #[derive(Debug, Clone)]
 pub struct FileBlock {
     pub contents: String,
+    pub name: String,
 }
 
 impl From<&Bound<'_, PythonFileBlock>> for FileBlock {
@@ -54,6 +55,11 @@ impl From<&Bound<'_, PythonFileBlock>> for FileBlock {
         Self {
             contents: block
                 .getattr("contents")
+                .unwrap()
+                .extract::<String>()
+                .unwrap(),
+            name: block
+                .getattr("name")
                 .unwrap()
                 .extract::<String>()
                 .unwrap(),
@@ -65,7 +71,9 @@ impl From<&Bound<'_, PythonFileBlock>> for FileBlock {
 #[derive(Debug, Clone)]
 pub struct BlockContents {
     #[pyo3(get)]
-    contents: String,
+    pub contents: String,
+    #[pyo3(get)]
+    pub name: String,
 }
 
 impl BlockContents {
@@ -74,6 +82,7 @@ impl BlockContents {
             println!("Block tag: {:?}", block_tag);
             Box::new(BlockContents {
                 contents: block_tag.contents.unwrap(),
+                name: block_tag.block_name,
             })
         })
     }
@@ -81,11 +90,16 @@ impl BlockContents {
 
 pub trait BlockSearchResult {
     fn contents(&self) -> String;
+    fn as_any(&self) -> &dyn std::any::Any;
 }
 
 impl BlockSearchResult for BlockContents {
     fn contents(&self) -> String {
         self.contents.clone()
+    }
+    
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 

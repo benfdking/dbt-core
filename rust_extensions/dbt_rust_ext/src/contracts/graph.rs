@@ -65,6 +65,16 @@ impl Documentation {
     fn original_file_path(&self) -> String {
         self.base_resource.original_file_path.clone()
     }
+
+    #[getter]
+    fn package_name(&self) -> String {
+        self.base_resource.package_name.clone()
+    }
+
+    #[getter]
+    fn path(&self) -> String {
+        self.base_resource.path.clone()
+    }
 }
 
 fn get_unique_id(

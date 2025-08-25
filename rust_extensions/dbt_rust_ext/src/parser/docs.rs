@@ -11,7 +11,7 @@ use crate::{
     config::runtime::RuntimeConfig,
     contracts::graph::{manifest_add_doc, Documentation, Manifest},
     parser::search::{
-        block_contents_get_contents, block_contents_get_name,
+        block_contents_get_name,
         block_get_file_path_original_file_path, block_get_file_path_relative_path,
         python_file_block_get_file, BlockContents, BlockSearchResult, BlockSearcher, FileBlock,
         PythonFileBlock,
@@ -116,7 +116,7 @@ impl DocumentationParser {
                 project_name.clone(),
                 file_block_original_file_path.clone(),
                 file_block_path_relative_path.clone(),
-                file_block_conents_name.clone(),
+                block.name.clone(),
                 block.contents.clone(),
             );
             for doc in docs {
@@ -137,9 +137,16 @@ impl DocumentationParser {
 
 impl From<Box<dyn BlockSearchResult>> for FileBlock {
     fn from(block: Box<dyn BlockSearchResult>) -> Self {
-        let block_contents = block.contents();
+        let block_contents_ref = block.as_ref();
+        // Downcast to BlockContents to access name
+        let block_contents = block_contents_ref
+            .as_any()
+            .downcast_ref::<BlockContents>()
+            .expect("Expected BlockContents");
+        
         FileBlock {
-            contents: block_contents,
+            contents: block.contents(),
+            name: block_contents.name.clone(),
         }
     }
 }
