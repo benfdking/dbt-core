@@ -62,26 +62,25 @@ impl DocumentationParser {
         Ok(self.generate_unique_id_block(project_name, resource_name.to_string()))
     }
 
-    fn parse_block(
-        &self,
-        py: Python<'_>,
-        block: &Bound<'_, PythonFileBlock>,
-    ) -> Vec<Documentation> {
-        let block: FileBlock = block.into();
-        let project_name: String = self.project.project_name(py).unwrap();
-        let block_contents = block_contents_get_contents(block).unwrap();
-        let name = block_contents_get_name();
-        let unique_id = self.generate_unique_id(py, &name, None).unwrap();
-        let block_contents = block_contents_get_contents(block).unwrap();
-
-        return self.parse_block_internal(
-            project_name,
-             unique_id,
-             file_block_path_relative_path,
-             block_contents_get_name(block),
-             block_contents_get_contents(block).unwrap()
-            );
-    }
+    // fn parse_block(
+    //     &self,
+    //     py: Python<'_>,
+    //     block: &Bound<'_, PythonFileBlock>,
+    // ) -> Vec<Documentation> {
+    //     let block: FileBlock = block.into();
+    //     let project_name: String = self.project.project_name(py).unwrap();
+    //     let block_contents = block_contents_get_contents(block).unwrap();
+    //     let name = block_contents_get_name();
+    //     let unique_id = self.generate_unique_id(py, &name, None).unwrap();
+    //     let block_contents = block_contents_get_contents(block).unwrap();
+    //     return self.parse_block_internal(
+    //         project_name,
+    //          unique_id,
+    //          file_block_path_relative_path,
+    //          block_contents_get_name(block),
+    //          block_contents_get_contents(block).unwrap()
+    //         );
+    // }
 
     fn parse_file(&self, py: Python<'_>, file_block: &Bound<'_, PythonFileBlock>) -> PyResult<()> {
         println!("Parsing file: {:?}", file_block);
@@ -109,8 +108,17 @@ impl DocumentationParser {
             .collect::<Vec<FileBlock>>();
         println!("Blocks: {:?}", blocks);
         let project_name = self.project.project_name(py).unwrap();
+        let file_block_path_relative_path = block_get_file_path_relative_path(file_block);
+        let file_block_original_file_path = block_get_file_path_original_file_path(file_block);
+        let file_block_conents_name = block_contents_get_name(file_block);
         for block in blocks {
-            let docs = self.parse_block_internal(project_name.clone(), &block.into());
+            let docs = self.parse_block_internal(
+                project_name.clone(),
+                file_block_original_file_path.clone(),
+                file_block_path_relative_path.clone(),
+                file_block_conents_name.clone(),
+                block.contents.clone(),
+            );
             for doc in docs {
                 let result = manifest_add_doc(
                     py,
@@ -119,7 +127,7 @@ impl DocumentationParser {
                     doc,
                 );
                 if result.is_err() {
-                    panic!("Failed to add doc to manifest");
+                    panic!("Failed to add doc to manifest {:?}", result);
                 }
             }
         }

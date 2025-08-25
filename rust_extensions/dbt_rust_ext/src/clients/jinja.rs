@@ -9,7 +9,7 @@ use pyo3::prelude::*;
 use regex::Regex;
 
 fn has_render_chars_pattern() -> Regex {
-    Regex::new(r"({[{%#]|[#}%]})").unwrap()
+    Regex::new(r"(\{\{|\{%|\{#|#\}|%\}|\}\})").expect("valid regex")
 }
 
 pub fn get_rendered(template: &str, context: Option<&Bound<'_, PyAny>>) -> String {
